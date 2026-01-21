@@ -67,7 +67,6 @@ model Ticket {
 
   // 5. Tipo de Solicitante (Define qué campos se llenan abajo)
   tipoEntidad       TipoEntidad
-
   // 6. Información de la Empresa Asociada (Campos dinámicos)
   // Si es Natural, estos quedan null. Si es Empresa, se llenan.
   empresaNIT        String?   @db.VarChar(20) // O TaxID si es extranjera

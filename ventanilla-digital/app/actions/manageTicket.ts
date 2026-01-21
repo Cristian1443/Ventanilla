@@ -2,6 +2,7 @@
 
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { auth } from "@/auth";
 import { sendAssignmentEmail } from "@/lib/email";
 
 const getPrisma = () => {
@@ -25,7 +26,25 @@ const parseId = (id: string | number) => {
   return parsed;
 };
 
+const ADMIN_EMAILS = [
+  "pasantedesarrollo@investinbogota.org",
+  ...(process.env.ADMIN_EMAILS || "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean),
+];
+
+const isAdmin = (email?: string | null) => {
+  if (!email) return false;
+  return ADMIN_EMAILS.includes(email.toLowerCase());
+};
+
 export const startTicket = async (id: string | number) => {
+  const session = await auth();
+  if (!session?.user?.email) {
+    throw new Error("No autorizado");
+  }
+
   const prisma = getPrisma();
   const ticketId = parseId(id);
   return prisma.ticket.update({
@@ -38,6 +57,14 @@ export const startTicket = async (id: string | number) => {
 };
 
 export const closeTicket = async (id: string | number) => {
+  const session = await auth();
+  if (!session?.user?.email) {
+    throw new Error("No autorizado");
+  }
+  if (!isAdmin(session.user.email)) {
+    throw new Error("Permisos insuficientes");
+  }
+
   const prisma = getPrisma();
   const ticketId = parseId(id);
   return prisma.ticket.update({
@@ -50,6 +77,14 @@ export const closeTicket = async (id: string | number) => {
 };
 
 export const assignTicket = async (id: string | number, emailResponsable: string) => {
+  const session = await auth();
+  if (!session?.user?.email) {
+    throw new Error("No autorizado");
+  }
+  if (!isAdmin(session.user.email)) {
+    throw new Error("Permisos insuficientes");
+  }
+
   const prisma = getPrisma();
   const ticketId = parseId(id);
   const updated = await prisma.ticket.update({

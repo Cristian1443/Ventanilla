@@ -46,7 +46,7 @@ export default async function TicketDetailPage({
     return (
       <main className="min-h-screen bg-zinc-50 px-4 py-10 text-zinc-900 dark:bg-black dark:text-zinc-50 sm:px-8">
         <div className="mx-auto w-full max-w-3xl rounded-2xl bg-white p-8 shadow-sm dark:bg-zinc-900">
-          <h1 className="text-2xl font-semibold">Detalle de Ticket</h1>
+          <h1 className="text-2xl font-semibold">Detalle de solicitud</h1>
           <p className="mt-2 text-sm text-red-600">
             Falta configurar DATABASE_URL en el entorno del servidor.
           </p>
@@ -70,13 +70,14 @@ export default async function TicketDetailPage({
   }
 
   const session = await auth();
+  const esPersonaNatural = ticket.tipoEntidad === "Persona_Natural";
 
   return (
-    <main className="min-h-screen bg-zinc-50 px-4 py-10 text-zinc-900 dark:bg-black dark:text-zinc-50 sm:px-8">
-      <div className="mx-auto w-full max-w-7xl space-y-6 rounded-2xl bg-white p-8 shadow-sm dark:bg-zinc-900">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+    <main className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 px-4 py-10 text-zinc-900 dark:from-black dark:to-zinc-950 dark:text-zinc-50 sm:px-8">
+      <div className="mx-auto w-full max-w-7xl space-y-6 rounded-2xl bg-white p-8 shadow-lg dark:bg-zinc-900">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-200 pb-4 dark:border-zinc-800">
           <div>
-            <h1 className="text-2xl font-semibold">Ticket #{ticket.idTicket}</h1>
+            <h1 className="text-2xl font-bold text-[#E84922]">Solicitud #{ticket.idTicket}</h1>
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
               {ticket.tipoSolicitud} • {formatFecha(ticket.fechaSolicitud)}
             </p>
@@ -87,31 +88,47 @@ export default async function TicketDetailPage({
         <div className="grid gap-6 lg:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>Información del Solicitante</CardTitle>
+              <CardTitle className="text-[#E84922]">Información del Solicitante</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               <p><strong>Nombre:</strong> {ticket.usuarioNombre}</p>
               <p><strong>Cargo:</strong> {ticket.usuarioCargo ?? "—"}</p>
+              <p><strong>Gerencia:</strong> {ticket.usuarioGerencia ?? "—"}</p>
               <p><strong>Correo:</strong> {ticket.usuarioEmail}</p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Información de la Empresa</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <p><strong>Entidad:</strong> {ticket.tipoEntidad}</p>
-              <p><strong>Empresa:</strong> {ticket.empresaNombre ?? "Persona Natural"}</p>
-              <p><strong>NIT/Tax ID:</strong> {ticket.empresaNIT ?? "—"}</p>
-              <p><strong>País:</strong> {ticket.empresaPais ?? "—"}</p>
-              <p><strong>Ciudad:</strong> {ticket.empresaCiudad ?? "—"}</p>
-            </CardContent>
-          </Card>
+          {esPersonaNatural ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-[#E84922]">Información del Contacto</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <p><strong>Nombre:</strong> {ticket.empresaNombre ?? "—"}</p>
+                <p><strong>Correo:</strong> {ticket.empresaCorreo ?? "—"}</p>
+                <p><strong>Teléfono:</strong> {ticket.empresaTelefono ?? "—"}</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-[#E84922]">Información de la Empresa</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <p><strong>Entidad:</strong> {ticket.tipoEntidad}</p>
+                <p><strong>Empresa:</strong> {ticket.empresaNombre ?? "—"}</p>
+                <p><strong>NIT/Tax ID:</strong> {ticket.empresaNIT ?? "—"}</p>
+                <p><strong>País:</strong> {ticket.empresaPais ?? "—"}</p>
+                <p><strong>Ciudad:</strong> {ticket.empresaCiudad ?? "—"}</p>
+                <p><strong>Correo contacto:</strong> {ticket.empresaCorreo ?? "—"}</p>
+                <p><strong>Teléfono contacto:</strong> {ticket.empresaTelefono ?? "—"}</p>
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader>
-              <CardTitle>Detalle del Problema</CardTitle>
+              <CardTitle className="text-[#E84922]">Detalle de la Solicitud</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               <p><strong>Tipo:</strong> {ticket.tipoSolicitud}</p>
@@ -122,7 +139,7 @@ export default async function TicketDetailPage({
 
           <Card>
             <CardHeader>
-              <CardTitle>Fechas y SLA</CardTitle>
+              <CardTitle className="text-[#E84922]">Fechas y SLA</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               <p><strong>Fecha Solicitud:</strong> {formatFecha(ticket.fechaSolicitud)}</p>
@@ -136,7 +153,7 @@ export default async function TicketDetailPage({
         {session && (
           <Card>
             <CardHeader>
-              <CardTitle>Panel de Gestión</CardTitle>
+              <CardTitle className="text-[#E84922]">Panel de Gestión</CardTitle>
             </CardHeader>
             <CardContent>
               <TicketActions id={ticket.idTicket} estado={ticket.estado} />

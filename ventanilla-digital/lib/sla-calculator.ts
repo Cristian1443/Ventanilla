@@ -11,8 +11,8 @@ const esFinDeSemana = (fecha: Date) => {
   return dia === 0 || dia === 6;
 };
 
-export const calcularFechaSLA = (fechaBase: Date, prioridad: Prioridad) => {
-  const dias = diasPorPrioridad[prioridad];
+export const calcularFechaSLAPorDiasHabiles = (fechaBase: Date, diasHabiles: number) => {
+  const dias = Math.max(0, Math.floor(Number(diasHabiles) || 0));
   const resultado = new Date(fechaBase);
   let agregados = 0;
 
@@ -24,6 +24,10 @@ export const calcularFechaSLA = (fechaBase: Date, prioridad: Prioridad) => {
   }
 
   return resultado;
+};
+
+export const calcularFechaSLA = (fechaBase: Date, prioridad: Prioridad) => {
+  return calcularFechaSLAPorDiasHabiles(fechaBase, diasPorPrioridad[prioridad]);
 };
 
 export const formatearFechaSLA = (fecha: Date) => {

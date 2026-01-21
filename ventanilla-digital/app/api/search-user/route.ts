@@ -71,8 +71,8 @@ export async function GET(request: Request) {
           nombre: u.displayName || "",
           // En muchos tenants "mail" viene vacío; usar UPN como fallback
           email: u.mail || u.userPrincipalName || "",
-          // A veces jobTitle no está poblado; usar department como fallback suave
-          cargo: u.jobTitle || u.department || "",
+          cargo: u.jobTitle || "",
+          gerencia: u.department || "",
         }))
         .filter((u) => u.nombre || u.email);
 

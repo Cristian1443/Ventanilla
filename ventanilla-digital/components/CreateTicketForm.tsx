@@ -15,7 +15,7 @@ import Textarea from "./ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { ciudadesColombia } from "../lib/data/ciudades-colombia";
 import { paises } from "../lib/data/paises";
-import { calcularFechaSLA, formatearFechaSLA } from "../lib/sla-calculator";
+import { calcularFechaSLAPorDiasHabiles, formatearFechaSLA } from "../lib/sla-calculator";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription } from "./ui/alert";
 
@@ -23,10 +23,12 @@ const ticketSchema = z
   .object({
     solicitanteNombre: z.string().min(1, "El nombre es requerido"),
     solicitanteCargo: z.string().min(1, "El cargo es requerido"),
+    solicitanteGerencia: z.string().min(1, "La gerencia es requerida"),
     solicitanteEmail: z.string().email("Email inválido"),
     tipoEntidad: z.enum(["PERSONA_NATURAL", "EMPRESA_LOCAL", "EMPRESA_EXTRANJERA"]),
-    documentoId: z.string().optional(),
     nombrePersona: z.string().optional(),
+    personaCorreo: z.string().email("Email inválido").optional(),
+    personaTelefono: z.string().optional(),
     nit: z.string().optional(),
     taxId: z.string().optional(),
     empresaNombre: z.string().optional(),
@@ -41,10 +43,11 @@ const ticketSchema = z
     asignadoNombre: z.string().optional(),
     asignadoCargo: z.string().optional(),
     asignadoEmail: z.string().email("Email inválido").optional(),
+    asignadoGerencia: z.string().optional(),
   })
   .refine((data) => {
     if (data.tipoEntidad === "PERSONA_NATURAL") {
-      return data.nombrePersona && data.nombrePersona.length > 0;
+      return Boolean(data.nombrePersona && data.personaCorreo && data.personaTelefono);
     }
     if (data.tipoEntidad === "EMPRESA_LOCAL") {
       return data.nit && data.empresaNombre && data.ciudad;
@@ -72,6 +75,7 @@ interface CreateTicketFormProps {
   currentUser?: {
     nombre: string;
     cargo: string;
+    gerencia: string;
     email: string;
   };
 }
@@ -81,7 +85,7 @@ export default function CreateTicketForm({ currentUser }: CreateTicketFormProps)
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
-  const [userSuggestions, setUserSuggestions] = useState<Array<{ nombre: string; email: string; cargo: string }>>([]);
+  const [userSuggestions, setUserSuggestions] = useState<Array<{ nombre: string; email: string; cargo: string; gerencia: string }>>([]);
 
   const {
     register,
@@ -95,6 +99,7 @@ export default function CreateTicketForm({ currentUser }: CreateTicketFormProps)
     defaultValues: {
       solicitanteNombre: currentUser?.nombre || "",
       solicitanteCargo: currentUser?.cargo || "",
+      solicitanteGerencia: currentUser?.gerencia || "",
       solicitanteEmail: currentUser?.email || "",
       tipoEntidad: "PERSONA_NATURAL",
       tipoTicket: "CONSULTA",
@@ -107,7 +112,7 @@ export default function CreateTicketForm({ currentUser }: CreateTicketFormProps)
   const prioridad = watch("prioridad");
   const paisSeleccionado = watch("pais");
   const diasResolucion = watch("diasResolucion");
-  const fechaSLAEstimada = calcularFechaSLA(new Date(), prioridad || "MEDIA");
+  const fechaSLAEstimada = calcularFechaSLAPorDiasHabiles(new Date(), Number(diasResolucion || 0));
 
   React.useEffect(() => {
     if (!diasResolucion) return;
@@ -140,7 +145,7 @@ export default function CreateTicketForm({ currentUser }: CreateTicketFormProps)
         setSubmitSuccess(false);
       }, 5000);
     } catch (error) {
-      setSubmitError("Error al crear el ticket. Por favor, inténtalo de nuevo.");
+      setSubmitError("Error al crear la Solicitud. Por favor, inténtalo de nuevo.");
       console.error("Error al enviar:", error);
     } finally {
       setIsSubmitting(false);
@@ -150,7 +155,7 @@ export default function CreateTicketForm({ currentUser }: CreateTicketFormProps)
   return (
     <Card className="w-full shadow-sm">
       <CardHeader>
-        <CardTitle>Crear Nuevo Ticket</CardTitle>
+        <CardTitle className="text-[#E84922]">Crear Nueva Solicitud</CardTitle>
         <CardDescription>
           Completa el formulario para registrar tu solicitud en el sistema de Ventanilla de Servicio Digital
         </CardDescription>
@@ -158,7 +163,7 @@ export default function CreateTicketForm({ currentUser }: CreateTicketFormProps)
       <CardContent className="space-y-6">
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
           <div className="space-y-4">
-            <h3 className="font-semibold text-lg border-b pb-2">Datos del Solicitante</h3>
+            <h3 className="font-semibold text-lg border-b border-[#E84922]/20 pb-2 text-[#E84922]">Datos del Solicitante</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
@@ -182,6 +187,24 @@ export default function CreateTicketForm({ currentUser }: CreateTicketFormProps)
                 )}
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="solicitanteGerencia">Gerencia *</Label>
+                <Input
+                  id="solicitanteGerencia"
+                  {...register("solicitanteGerencia")}
+                  disabled
+                  className="bg-gray-50"
+                />
+                {!currentUser?.gerencia ? (
+                  <p className="text-xs text-amber-600">
+                    No se pudo detectar tu gerencia automáticamente. Verifica que tu usuario tenga <strong>department</strong> en Microsoft Entra ID.
+                  </p>
+                ) : null}
+                {errors.solicitanteGerencia && (
+                  <p className="text-sm text-red-500">{errors.solicitanteGerencia.message}</p>
+                )}
+              </div>
+
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="solicitanteEmail">Correo Electrónico *</Label>
                 <Input id="solicitanteEmail" type="email" {...register("solicitanteEmail")} disabled className="bg-gray-50" />
@@ -193,7 +216,7 @@ export default function CreateTicketForm({ currentUser }: CreateTicketFormProps)
           </div>
 
           <div className="space-y-4">
-            <h3 className="font-semibold text-lg border-b pb-2">Información de la Entidad</h3>
+            <h3 className="font-semibold text-lg border-b border-[#E84922]/20 pb-2 text-[#E84922]">Información de la Entidad</h3>
 
             <div className="space-y-2">
               <Label htmlFor="tipoEntidad">Tipo de Entidad *</Label>
@@ -215,15 +238,21 @@ export default function CreateTicketForm({ currentUser }: CreateTicketFormProps)
             {tipoEntidad === "PERSONA_NATURAL" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg">
                 <div className="space-y-2">
-                  <Label htmlFor="documentoId">Documento de Identidad *</Label>
-                  <Input id="documentoId" {...register("documentoId")} placeholder="Ej: 1234567890" />
-                  {errors.documentoId && <p className="text-sm text-red-500">{errors.documentoId.message}</p>}
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="nombrePersona">Nombre Completo *</Label>
                   <Input id="nombrePersona" {...register("nombrePersona")} placeholder="Nombre completo de la persona" />
                   {errors.nombrePersona && <p className="text-sm text-red-500">{errors.nombrePersona.message}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="personaCorreo">Correo *</Label>
+                  <Input id="personaCorreo" type="email" {...register("personaCorreo")} placeholder="correo@ejemplo.com" />
+                  {errors.personaCorreo && <p className="text-sm text-red-500">{errors.personaCorreo.message}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="personaTelefono">Teléfono *</Label>
+                  <Input id="personaTelefono" {...register("personaTelefono")} placeholder="Ej: +57 300 1234567" />
+                  {errors.personaTelefono && <p className="text-sm text-red-500">{errors.personaTelefono.message}</p>}
                 </div>
               </div>
             )}
@@ -327,7 +356,7 @@ export default function CreateTicketForm({ currentUser }: CreateTicketFormProps)
           </div>
 
           <div className="space-y-4">
-            <h3 className="font-semibold text-lg border-b pb-2">Detalles del Ticket</h3>
+            <h3 className="font-semibold text-lg border-b border-[#E84922]/20 pb-2 text-[#E84922]">Detalles de la Solicitud</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -374,14 +403,14 @@ export default function CreateTicketForm({ currentUser }: CreateTicketFormProps)
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="descripcion">Descripción del Problema *</Label>
+                <Label htmlFor="descripcion">Descripción de la Solicitud *</Label>
                 <Textarea id="descripcion" {...register("descripcion")} placeholder="Describe detalladamente tu solicitud o problema..." rows={5} />
                 {errors.descripcion && <p className="text-sm text-red-500">{errors.descripcion.message}</p>}
               </div>
             </div>
 
             <div className="space-y-4">
-            <h3 className="font-semibold text-lg border-b pb-2">Asignación del Ticket</h3>
+            <h3 className="font-semibold text-lg border-b border-[#E84922]/20 pb-2 text-[#E84922]">Asignación de la Solicitud</h3>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
@@ -399,7 +428,7 @@ export default function CreateTicketForm({ currentUser }: CreateTicketFormProps)
                         const response = await fetch(`/api/search-user?name=${encodeURIComponent(nombre)}`);
                         if (response.ok) {
                           const data = await response.json();
-                          const results: Array<{ nombre: string; email: string; cargo: string }> = Array.isArray(data)
+                          const results: Array<{ nombre: string; email: string; cargo: string; gerencia: string }> = Array.isArray(data)
                             ? data
                             : Array.isArray(data?.results)
                               ? data.results
@@ -412,6 +441,7 @@ export default function CreateTicketForm({ currentUser }: CreateTicketFormProps)
                             const u = results[0];
                             setValue("asignadoNombre", u.nombre || nombre);
                             setValue("asignadoCargo", u.cargo || "");
+                            setValue("asignadoGerencia", u.gerencia || "");
                             if (u.email) setValue("asignadoEmail", u.email);
                             setUserSuggestions([]);
                           }
@@ -427,6 +457,7 @@ export default function CreateTicketForm({ currentUser }: CreateTicketFormProps)
                     } else {
                       setValue("asignadoCargo", "");
                       setValue("asignadoEmail", "");
+                      setValue("asignadoGerencia", "");
                       setUserSuggestions([]);
                     }
                   }}
@@ -442,16 +473,27 @@ export default function CreateTicketForm({ currentUser }: CreateTicketFormProps)
                         onClick={() => {
                           setValue("asignadoNombre", u.nombre);
                           setValue("asignadoCargo", u.cargo || "");
+                          setValue("asignadoGerencia", u.gerencia || "");
                           if (u.email) setValue("asignadoEmail", u.email);
                           setUserSuggestions([]);
                         }}
                       >
                         <div className="font-medium">{u.nombre || "—"}</div>
-                        <div className="text-xs text-zinc-600">{u.cargo || "Sin cargo"} · {u.email || "Sin correo"}</div>
+                        <div className="text-xs text-zinc-600">
+                          {u.cargo || "Sin cargo"} · {u.gerencia || "Sin gerencia"} · {u.email || "Sin correo"}
+                        </div>
                       </button>
                     ))}
                   </div>
                 )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="asignadoGerencia">Gerencia del responsable</Label>
+                <Input
+                  id="asignadoGerencia"
+                  {...register("asignadoGerencia")}
+                  placeholder="Gerencia del responsable"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="asignadoCargo">Cargo del responsable</Label>
@@ -470,7 +512,9 @@ export default function CreateTicketForm({ currentUser }: CreateTicketFormProps)
               <AlertDescription>
                 <strong>Fecha de Compromiso SLA:</strong> {formatearFechaSLA(fechaSLAEstimada)}
                 <br />
-                <span className="text-sm text-gray-600">Basado en prioridad {prioridad} (excluye fines de semana)</span>
+                <span className="text-sm text-gray-600">
+                  Basado en {diasResolucion} día(s) hábil(es) estimado(s) (excluye fines de semana)
+                </span>
               </AlertDescription>
             </Alert>
           </div>
@@ -481,7 +525,7 @@ export default function CreateTicketForm({ currentUser }: CreateTicketFormProps)
             <Alert className="bg-green-50 border-green-200">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-800">
-                ¡Ticket creado exitosamente! Se ha enviado una notificación al área correspondiente.
+                ¡Solicitud creado exitosamente! Se ha enviado una notificación al área correspondiente.
               </AlertDescription>
             </Alert>
           )}
@@ -498,7 +542,7 @@ export default function CreateTicketForm({ currentUser }: CreateTicketFormProps)
               Cancelar
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Creando..." : "Crear Ticket"}
+              {isSubmitting ? "Creando..." : "Crear Solicitud"}
             </Button>
           </div>
         </form>

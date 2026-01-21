@@ -38,8 +38,8 @@ const badgeEstado = (estado: string) => {
 const prioridadView = (prioridad: string) => {
   if (prioridad === "Alta") {
     return (
-      <span className="inline-flex items-center gap-2 font-medium text-red-600">
-        <span className="h-2 w-2 rounded-full bg-red-500" />
+      <span className="inline-flex items-center gap-2 font-medium text-[#E84922]">
+        <span className="h-2 w-2 rounded-full bg-[#E84922]" />
         Alta
       </span>
     );
@@ -57,7 +57,7 @@ export default async function DashboardPage() {
         <div className="mx-auto w-full max-w-3xl rounded-2xl bg-white p-8 shadow-sm dark:bg-zinc-900">
           <h1 className="text-2xl font-semibold">Dashboard de Gestión</h1>
           <p className="mt-2 text-sm text-red-600">
-            Debes iniciar sesión para ver tus tickets asignados.
+            Debes iniciar sesión para ver tus solicitudes asignados.
           </p>
         </div>
       </main>
@@ -86,12 +86,12 @@ export default async function DashboardPage() {
   });
 
   return (
-    <main className="min-h-screen bg-zinc-50 px-4 py-10 text-zinc-900 dark:bg-black dark:text-zinc-50 sm:px-8">
-      <div className="mx-auto w-full max-w-7xl space-y-6 rounded-2xl bg-white p-8 shadow-sm dark:bg-zinc-900">
-        <div className="space-y-2">
-          <h1 className="text-2xl font-semibold">Dashboard de Gestión</h1>
+    <main className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 px-4 py-10 text-zinc-900 dark:from-black dark:to-zinc-950 dark:text-zinc-50 sm:px-8">
+      <div className="mx-auto w-full max-w-7xl space-y-6 rounded-2xl bg-white p-8 shadow-lg dark:bg-zinc-900">
+        <div className="space-y-2 border-b border-zinc-200 pb-4 dark:border-zinc-800">
+          <h1 className="text-2xl font-bold text-[#E84922]">Dashboard de Gestión</h1>
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
-            Tickets asignados a tu correo ({userEmail}).
+          Solicitudes asignados a tu correo ({userEmail}).
           </p>
         </div>
 
@@ -112,12 +112,12 @@ export default async function DashboardPage() {
             {tickets.map((ticket) => (
               <TableRow key={ticket.idTicket}>
                 <TableCell>
-                  <Link className="text-blue-600 hover:underline" href={`/dashboard/${ticket.idTicket}`}>
+                  <Link className="text-[#E84922] hover:text-[#cf3d1f] hover:underline font-medium" href={`/dashboard/${ticket.idTicket}`}>
                     #{ticket.idTicket}
                   </Link>
                 </TableCell>
                 <TableCell className="font-medium">
-                  <Link className="text-blue-600 hover:underline" href={`/dashboard/${ticket.idTicket}`}>
+                  <Link className="text-[#E84922] hover:text-[#cf3d1f] hover:underline" href={`/dashboard/${ticket.idTicket}`}>
                     {ticket.tipoSolicitud}
                   </Link>
                 </TableCell>
@@ -135,7 +135,7 @@ export default async function DashboardPage() {
                 <TableCell>{formatFecha(ticket.ansFechaCompromiso)}</TableCell>
                 <TableCell>
                   <Link
-                    className="inline-flex items-center justify-center rounded-md border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-900 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-800"
+                    className="inline-flex items-center justify-center rounded-md bg-[#E84922] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[#cf3d1f] shadow-sm"
                     href={`/dashboard/${ticket.idTicket}`}
                   >
                     Ver detalle

@@ -37,7 +37,7 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {showSidebar ? <Sidebar isAdmin={isAdmin} /> : null}
-        <main className={`min-h-screen ${showSidebar ? "pl-64" : ""}`}>{children}</main>
+        <main className={`min-h-screen ${showSidebar ? "pt-16 md:pt-0 md:pl-64" : ""}`}>{children}</main>
       </body>
     </html>
   );

@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { sendAssignmentEmail } from "@/lib/email";
 
@@ -22,10 +22,12 @@ const createTicketSchema = z
   .object({
     solicitanteNombre: z.string().min(1, "El nombre es requerido"),
     solicitanteCargo: z.string().min(1, "El cargo es requerido"),
+    solicitanteGerencia: z.string().min(1, "La gerencia es requerida"),
     solicitanteEmail: z.string().email("Email inválido"),
     tipoEntidad: tipoEntidadSchema,
-    documentoId: z.string().optional(),
     nombrePersona: z.string().optional(),
+    personaCorreo: z.string().email("Email inválido").optional(),
+    personaTelefono: z.string().optional(),
     nit: z.string().optional(),
     taxId: z.string().optional(),
     empresaNombre: z.string().optional(),
@@ -40,10 +42,11 @@ const createTicketSchema = z
     asignadoNombre: z.string().optional(),
     asignadoCargo: z.string().optional(),
     asignadoEmail: z.string().email("Email inválido").optional(),
+    asignadoGerencia: z.string().optional(),
   })
   .refine((data) => {
     if (data.tipoEntidad === "PERSONA_NATURAL") {
-      return Boolean(data.nombrePersona);
+      return Boolean(data.nombrePersona && data.personaCorreo && data.personaTelefono);
     }
     if (data.tipoEntidad === "EMPRESA_LOCAL") {
       return Boolean(data.nit && data.empresaNombre && data.ciudad);
@@ -115,7 +118,8 @@ const mapPrioridad = (prioridad: z.infer<typeof prioridadSchema>) => {
 export const createTicket = async (input: CreateTicketInput) => {
   const data = createTicketSchema.parse(input);
   const prioridad = mapPrioridad(data.prioridad);
-  const ansFechaCompromiso = sumarDiasHabiles(new Date(), diasPorPrioridad[data.prioridad]);
+  // Compromiso basado en días estimados (días hábiles), no en la prioridad fija
+  const ansFechaCompromiso = sumarDiasHabiles(new Date(), data.diasResolucion);
 
   const ticket = await prisma.ticket.create({
     data: {
@@ -127,11 +131,22 @@ export const createTicket = async (input: CreateTicketInput) => {
       usuarioNombre: data.solicitanteNombre,
       usuarioEmail: data.solicitanteEmail,
       usuarioCargo: data.solicitanteCargo,
+      usuarioGerencia: data.solicitanteGerencia,
       asignadoNombre: data.asignadoNombre || null,
       asignadoCargo: data.asignadoCargo || null,
       asignadoEmail: data.asignadoEmail || null,
+      asignadoGerencia: data.asignadoGerencia || null,
+      // Para Persona Natural guardamos correo/teléfono en los campos de contacto genéricos
       empresaNIT: data.nit || data.taxId || null,
       empresaNombre: data.empresaNombre || data.nombrePersona || null,
+      empresaTelefono:
+        data.tipoEntidad === "PERSONA_NATURAL"
+          ? data.personaTelefono || null
+          : data.telefono || null,
+      empresaCorreo:
+        data.tipoEntidad === "PERSONA_NATURAL"
+          ? data.personaCorreo || null
+          : null,
       empresaPais: data.pais || (data.tipoEntidad === "EMPRESA_LOCAL" ? "Colombia" : null),
       empresaCiudad: data.ciudad || null,
       ansFechaCompromiso,

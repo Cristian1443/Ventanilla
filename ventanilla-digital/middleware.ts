@@ -1,0 +1,48 @@
+import { NextResponse, type NextRequest } from "next/server";
+import { auth } from "@/auth";
+
+// Correos con rol de admin (incluye valor por defecto + variables de entorno)
+const ADMIN_EMAILS = [
+  "pasantedesarrollo@investinbogota.org",
+  ...(process.env.ADMIN_EMAILS || "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean),
+];
+
+const isAdmin = (email?: string | null) => {
+  if (!email) return false;
+  const normalized = email.toLowerCase();
+  return ADMIN_EMAILS.includes(normalized);
+};
+
+export async function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+
+  // Solo proteger dashboard y admin
+  const isDashboard = pathname.startsWith("/dashboard");
+  const isAdminRoute = pathname.startsWith("/admin");
+  if (!isDashboard && !isAdminRoute) return NextResponse.next();
+
+  const session = await auth();
+  const userEmail = session?.user?.email;
+
+  // Si no hay sesión -> login
+  if (!userEmail) {
+    const loginUrl = new URL("/", req.url);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // Si intenta /admin y no es admin -> redirigir a dashboard o unauthorized
+  if (isAdminRoute && !isAdmin(userEmail)) {
+    const unauthorized = new URL("/unauthorized", req.url);
+    // Si no quieres página de no autorizado, cambia a "/dashboard"
+    return NextResponse.redirect(unauthorized);
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: ["/dashboard/:path*", "/admin/:path*"],
+};
