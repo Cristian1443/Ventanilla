@@ -1,0 +1,88 @@
+
+
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Enums para restringir valores (Reglas de Negocio)
+enum Prioridad {
+  Alta   // 1 día
+  Media  // 3 días
+  Baja   // 5 días
+}
+
+enum EstadoTicket {
+  Abierto
+  En_Proceso
+  En_Espera
+  Cerrado
+  Anulado
+}
+
+enum TipoEntidad {
+  Persona_Natural
+  Empresa_Local
+  Empresa_Extranjera
+}
+
+// TABLA PRINCIPAL (Basada en tu imagen bdo.RegistroSolicitud)
+model Ticket {
+  // 1. Identificación del Ticket
+  idTicket          Int      @id @default(autoincrement()) // Id_Ticket
+  tipoSolicitud     String   @db.VarChar(50)
+  descripcion       String   @db.VarChar(250)
+  
+  // 2. Fechas de Ciclo de Vida
+  fechaSolicitud    DateTime @default(now())
+  fechaAtencion     DateTime?
+  fechaCierre       DateTime?
+  
+  // Lógica SLA (ANS)
+  prioridad         Prioridad
+  diasResolucion    Int?      @default(1)
+  ansFechaCompromiso DateTime? // Se calcula en el backend
+  ansEstado         String    @default("A tiempo") @db.VarChar(20)
+  ansCumplido       Boolean   @default(false)
+  
+  canal             String    @default("Web") @db.VarChar(20)
+  estado            EstadoTicket @default(Abierto)
+
+  // 3. Información del Usuario Solicitante (Viene del Login Microsoft)
+  usuarioGerencia   String?   @db.VarChar(50)
+  usuarioNombre     String    @db.VarChar(80)
+  usuarioCargo      String?   @db.VarChar(80)
+  usuarioEmail      String    @db.VarChar(80) // Clave para notificaciones
+
+  // 4. Responsable del Ticket (Gerencia)
+  asignadoGerencia  String?   @db.VarChar(50)
+  asignadoNombre    String?   @db.VarChar(80)
+  asignadoEmail     String?   @db.VarChar(80) // Para enviar correo a Outlook
+  asignadoCargo     String?   @db.VarChar(80)
+
+  // 5. Tipo de Solicitante (Define qué campos se llenan abajo)
+  tipoEntidad       TipoEntidad
+
+  // 6. Información de la Empresa Asociada (Campos dinámicos)
+  // Si es Natural, estos quedan null. Si es Empresa, se llenan.
+  empresaNIT        String?   @db.VarChar(20) // O TaxID si es extranjera
+  empresaNombre     String?   @db.VarChar(120)
+  empresaContacto   String?   @db.VarChar(50)
+  empresaCargo      String?   @db.VarChar(80)
+  empresaTelefono   String?   @db.VarChar(20)
+  empresaCorreo     String?   @db.VarChar(80)
+  
+  // Ubicación
+  empresaPais       String?   @db.VarChar(50)
+  empresaCiudad     String?   @db.VarChar(50)
+  empresaSector     String?   @db.VarChar(80)
+
+  // Auditoría
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
