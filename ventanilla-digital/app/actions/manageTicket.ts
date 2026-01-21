@@ -1,22 +1,8 @@
 "use server";
 
-import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
 import { auth } from "@/auth";
+import { getPrismaClient } from "@/lib/prisma";
 import { sendAssignmentEmail } from "@/lib/email";
-
-const getPrisma = () => {
-  if (!process.env.DATABASE_URL) {
-    throw new Error("DATABASE_URL no está configurado.");
-  }
-  const globalForPrisma = globalThis as typeof globalThis & { prisma?: PrismaClient };
-  if (!globalForPrisma.prisma) {
-    globalForPrisma.prisma = new PrismaClient({
-      adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
-    });
-  }
-  return globalForPrisma.prisma;
-};
 
 const parseId = (id: string | number) => {
   const parsed = typeof id === "string" ? Number(id) : id;
@@ -45,7 +31,10 @@ export const startTicket = async (id: string | number) => {
     throw new Error("No autorizado");
   }
 
-  const prisma = getPrisma();
+  const prisma = getPrismaClient();
+  if (!prisma) {
+    throw new Error("DATABASE_URL no está configurado.");
+  }
   const ticketId = parseId(id);
   return prisma.ticket.update({
     where: { idTicket: ticketId },
@@ -65,7 +54,10 @@ export const closeTicket = async (id: string | number) => {
     throw new Error("Permisos insuficientes");
   }
 
-  const prisma = getPrisma();
+  const prisma = getPrismaClient();
+  if (!prisma) {
+    throw new Error("DATABASE_URL no está configurado.");
+  }
   const ticketId = parseId(id);
   return prisma.ticket.update({
     where: { idTicket: ticketId },
@@ -85,7 +77,10 @@ export const assignTicket = async (id: string | number, emailResponsable: string
     throw new Error("Permisos insuficientes");
   }
 
-  const prisma = getPrisma();
+  const prisma = getPrismaClient();
+  if (!prisma) {
+    throw new Error("DATABASE_URL no está configurado.");
+  }
   const ticketId = parseId(id);
   const updated = await prisma.ticket.update({
     where: { idTicket: ticketId },

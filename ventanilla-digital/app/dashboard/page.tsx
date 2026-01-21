@@ -1,23 +1,11 @@
-import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
 import { auth } from "@/auth";
+import { getPrismaClient } from "@/lib/prisma";
 
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import Link from "next/link";
 
 export const runtime = "nodejs";
-
-const getPrisma = () => {
-  if (!process.env.DATABASE_URL) return null;
-  const globalForPrisma = globalThis as typeof globalThis & { prisma?: PrismaClient };
-  if (!globalForPrisma.prisma) {
-    globalForPrisma.prisma = new PrismaClient({
-      adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
-    });
-  }
-  return globalForPrisma.prisma;
-};
 
 const formatFecha = (fecha: Date | null) => {
   if (!fecha) return "—";
@@ -64,7 +52,7 @@ export default async function DashboardPage() {
     );
   }
 
-  const prisma = getPrisma();
+  const prisma = getPrismaClient();
   if (!prisma) {
     return (
       <main className="min-h-screen bg-zinc-50 px-4 py-10 text-zinc-900 dark:bg-black dark:text-zinc-50 sm:px-8">

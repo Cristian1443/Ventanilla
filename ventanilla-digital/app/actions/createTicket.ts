@@ -1,19 +1,8 @@
 "use server";
 
 import { z } from "zod";
-import { Prisma, PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { getPrismaClient } from "@/lib/prisma";
 import { sendAssignmentEmail } from "@/lib/email";
-
-const prisma =
-  (globalThis as typeof globalThis & { prisma?: PrismaClient }).prisma ??
-  new PrismaClient({
-    adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
-  });
-
-if (process.env.NODE_ENV !== "production") {
-  (globalThis as typeof globalThis & { prisma?: PrismaClient }).prisma = prisma;
-}
 
 const prioridadSchema = z.enum(["ALTA", "MEDIA", "BAJA"]);
 const tipoEntidadSchema = z.enum(["PERSONA_NATURAL", "EMPRESA_LOCAL", "EMPRESA_EXTRANJERA"]);
@@ -120,6 +109,11 @@ export const createTicket = async (input: CreateTicketInput) => {
   const prioridad = mapPrioridad(data.prioridad);
   // Compromiso basado en días estimados (días hábiles), no en la prioridad fija
   const ansFechaCompromiso = sumarDiasHabiles(new Date(), data.diasResolucion);
+
+  const prisma = getPrismaClient();
+  if (!prisma) {
+    throw new Error("DATABASE_URL no está configurado.");
+  }
 
   const ticket = await prisma.ticket.create({
     data: {
