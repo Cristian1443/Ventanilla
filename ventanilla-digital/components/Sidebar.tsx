@@ -75,9 +75,9 @@ export default function Sidebar({ isAdmin = false }: { isAdmin?: boolean }) {
             <Image
               src="/logo.svg"
               alt="Invest in Bogotá"
-              width={140}
-              height={44}
-              className="h-10 w-auto object-contain"
+              width={160}
+              height={50}
+              className="h-12 w-auto object-contain"
               priority
             />
           </Link>
@@ -113,9 +113,9 @@ export default function Sidebar({ isAdmin = false }: { isAdmin?: boolean }) {
                 <Image
                   src="/logo.svg"
                   alt="Invest in Bogotá"
-                  width={180}
-                  height={56}
-                  className="h-12 w-auto object-contain"
+                  width={220}
+                  height={68}
+                  className="h-16 w-auto object-contain"
                   priority
                 />
               </Link>
