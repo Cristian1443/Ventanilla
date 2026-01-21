@@ -37,8 +37,14 @@ export const sendAssignmentEmail = async (
   if (!transporter) {
     return;
   }
-  const fromName = "Ventanilla Digital";
-  const subject = `Asignación de Ticket #${ticketId}`;
+  const fromName = "Ventanilla de Servicio Digital – Invest in Bogotá";
+  const subject = `Ventanilla Digital | Ticket #${ticketId} asignado: ${ticketTitle}`;
+
+  const text = [
+    `Se te ha asignado el ticket #${ticketId} (${ticketTitle}).`,
+    "",
+    "Ingresa a la Ventanilla de Servicio Digital para revisarlo y dar respuesta.",
+  ].join("\n");
 
   const html = `
     <div style="font-family: Arial, Helvetica, sans-serif; color: #111827;">
@@ -63,6 +69,7 @@ export const sendAssignmentEmail = async (
     from: `"${fromName}" <${process.env.SMTP_USER}>`,
     to: toEmail,
     subject,
+    text,
     html,
   });
 };

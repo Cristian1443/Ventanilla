@@ -19,6 +19,20 @@ import { calcularFechaSLAPorDiasHabiles, formatearFechaSLA } from "../lib/sla-ca
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription } from "./ui/alert";
 
+const emptyToUndefined = <T,>(value: T) => {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return (trimmed === "" ? undefined : trimmed) as unknown as T;
+  }
+  return value;
+};
+
+const optionalText = () =>
+  z.preprocess(emptyToUndefined, z.string().min(1, "Este campo es requerido").optional());
+
+const optionalEmail = () =>
+  z.preprocess(emptyToUndefined, z.string().email("Email inválido").optional());
+
 const ticketSchema = z
   .object({
     solicitanteNombre: z.string().min(1, "El nombre es requerido"),
@@ -26,39 +40,89 @@ const ticketSchema = z
     solicitanteGerencia: z.string().min(1, "La gerencia es requerida"),
     solicitanteEmail: z.string().email("Email inválido"),
     tipoEntidad: z.enum(["PERSONA_NATURAL", "EMPRESA_LOCAL", "EMPRESA_EXTRANJERA"]),
-    nombrePersona: z.string().optional(),
-    personaCorreo: z.string().email("Email inválido").optional(),
-    personaTelefono: z.string().optional(),
-    nit: z.string().optional(),
-    taxId: z.string().optional(),
-    empresaNombre: z.string().optional(),
-    pais: z.string().optional(),
-    ciudad: z.string().optional(),
-    direccion: z.string().optional(),
-    telefono: z.string().optional(),
+    // Entidad
+    nombrePersona: optionalText(),
+    personaCorreo: optionalEmail(),
+    personaTelefono: z.preprocess(emptyToUndefined, z.string().optional()),
+    nit: z.preprocess(emptyToUndefined, z.string().optional()),
+    taxId: z.preprocess(emptyToUndefined, z.string().optional()),
+    empresaNombre: optionalText(),
+    pais: optionalText(),
+    ciudad: optionalText(),
+    direccion: z.preprocess(emptyToUndefined, z.string().optional()),
+    telefono: z.preprocess(emptyToUndefined, z.string().optional()),
     tipoTicket: z.enum(["CONSULTA", "SOPORTE_TECNICO", "RECLAMO", "SOLICITUD_CAMBIO", "INCIDENTE"]),
     prioridad: z.enum(["ALTA", "MEDIA", "BAJA"]),
     diasResolucion: z.coerce.number().int().min(1, "Los días deben ser al menos 1"),
     descripcion: z.string().min(10, "La descripción debe tener al menos 10 caracteres"),
-    asignadoNombre: z.string().optional(),
-    asignadoCargo: z.string().optional(),
-    asignadoEmail: z.string().email("Email inválido").optional(),
-    asignadoGerencia: z.string().optional(),
+    // Asignación (opcional)
+    asignadoNombre: z.preprocess(emptyToUndefined, z.string().optional()),
+    asignadoCargo: z.preprocess(emptyToUndefined, z.string().optional()),
+    asignadoEmail: optionalEmail(),
+    asignadoGerencia: z.preprocess(emptyToUndefined, z.string().optional()),
   })
-  .refine((data) => {
+  .superRefine((data, ctx) => {
+    // Validaciones por tipo de entidad
     if (data.tipoEntidad === "PERSONA_NATURAL") {
-      return Boolean(data.nombrePersona && data.personaCorreo && data.personaTelefono);
+      if (!data.nombrePersona) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["nombrePersona"],
+          message: "El nombre completo es requerido",
+        });
+      }
+      if (!data.personaCorreo) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["personaCorreo"],
+          message: "El correo es requerido",
+        });
+      }
+      // Teléfono es opcional (según requerimiento)
     }
+
     if (data.tipoEntidad === "EMPRESA_LOCAL") {
-      return data.nit && data.empresaNombre && data.ciudad;
+      if (!data.empresaNombre) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["empresaNombre"],
+          message: "La razón social es requerida",
+        });
+      }
+      if (!data.ciudad) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["ciudad"],
+          message: "La ciudad es requerida",
+        });
+      }
+      // NIT es opcional (según requerimiento)
     }
+
     if (data.tipoEntidad === "EMPRESA_EXTRANJERA") {
-      return data.taxId && data.empresaNombre && data.pais && data.ciudad;
+      if (!data.empresaNombre) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["empresaNombre"],
+          message: "La razón social es requerida",
+        });
+      }
+      if (!data.pais) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["pais"],
+          message: "El país es requerido",
+        });
+      }
+      if (!data.ciudad) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["ciudad"],
+          message: "La ciudad es requerida",
+        });
+      }
+      // Tax ID es opcional (según requerimiento)
     }
-    return true;
-  }, {
-    message: "Completa todos los campos requeridos según el tipo de entidad",
-    path: ["tipoEntidad"],
   })
   .refine((data) => {
     if (data.prioridad === "ALTA") return data.diasResolucion <= 5;
@@ -250,7 +314,7 @@ export default function CreateTicketForm({ currentUser }: CreateTicketFormProps)
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="personaTelefono">Teléfono *</Label>
+                  <Label htmlFor="personaTelefono">Teléfono (Opcional)</Label>
                   <Input id="personaTelefono" {...register("personaTelefono")} placeholder="Ej: +57 300 1234567" />
                   {errors.personaTelefono && <p className="text-sm text-red-500">{errors.personaTelefono.message}</p>}
                 </div>
@@ -260,7 +324,7 @@ export default function CreateTicketForm({ currentUser }: CreateTicketFormProps)
             {tipoEntidad === "EMPRESA_LOCAL" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-green-50 rounded-lg">
                 <div className="space-y-2">
-                  <Label htmlFor="nit">NIT *</Label>
+                  <Label htmlFor="nit">NIT (Opcional)</Label>
                   <Input id="nit" {...register("nit")} placeholder="Ej: 900123456-7" />
                   {errors.nit && <p className="text-sm text-red-500">{errors.nit.message}</p>}
                 </div>
@@ -308,7 +372,7 @@ export default function CreateTicketForm({ currentUser }: CreateTicketFormProps)
             {tipoEntidad === "EMPRESA_EXTRANJERA" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-purple-50 rounded-lg">
                 <div className="space-y-2">
-                  <Label htmlFor="taxId">Tax ID / Registro Fiscal *</Label>
+                  <Label htmlFor="taxId">Tax ID / Registro Fiscal (Opcional)</Label>
                   <Input id="taxId" {...register("taxId")} placeholder="Ej: EIN 12-3456789" />
                   {errors.taxId && <p className="text-sm text-red-500">{errors.taxId.message}</p>}
                 </div>
