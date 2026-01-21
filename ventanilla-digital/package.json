@@ -6,9 +6,7 @@
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
-    "lint": "eslint",
-    "postinstall": "prisma generate"
-  },
+    "lint": "eslint"},
   "dependencies": {
     "@auth/core": "^0.34.3",
     "@hookform/resolvers": "^5.2.2",
