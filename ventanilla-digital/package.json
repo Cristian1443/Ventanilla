@@ -6,12 +6,13 @@
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
-    "lint": "eslint"},
+    "lint": "eslint"
+  },
   "dependencies": {
     "@auth/core": "^0.34.3",
     "@hookform/resolvers": "^5.2.2",
     "@prisma/adapter-pg": "^7.2.0",
-    "@prisma/client": "^7.2.0",
+    "@prisma/client": "^7.3.0",
     "lucide-react": "^0.562.0",
     "next": "16.1.4",
     "next-auth": "5.0.0-beta.30",
