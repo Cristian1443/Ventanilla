@@ -11,3 +11,7 @@
 # Configuración para Next.js
 [functions]
   node_bundler = "esbuild"
+
+# Nota: Para cron jobs automáticos en Netlify, usa un servicio externo
+# como cron-job.org o EasyCron que llame a: https://tu-app.netlify.app/api/reminders?dias=1
+# Ver lib/cron-setup.md para más detalles

@@ -175,6 +175,30 @@ O usa este generador online: https://generate-secret.vercel.app/32
 
 ---
 
+## 🔔 Paso 6: Configurar Recordatorios Automáticos
+
+Para que los recordatorios de tickets se envíen automáticamente:
+
+### Opción Recomendada: Cron-Job.org (Gratis)
+
+1. Crea una cuenta en https://cron-job.org (gratis)
+2. Crea un nuevo cron job:
+   - **URL:** `https://tu-app.netlify.app/api/reminders?dias=1`
+   - **Schedule:** Diariamente a las 9:00 AM (hora Colombia = 14:00 UTC)
+   - **Método:** GET
+3. Guarda y activa el cron job
+
+### Alternativa: EasyCron
+
+1. Crea cuenta en https://www.easycron.com
+2. Configura similar a cron-job.org
+
+**Nota:** Para Vercel, el archivo `vercel.json` ya está configurado y funcionará automáticamente.
+
+Ver `lib/cron-setup.md` para más opciones y detalles.
+
+---
+
 ## 🎉 ¡Listo!
 
 Tu aplicación debería estar funcionando en: `https://tu-app.netlify.app`
@@ -182,3 +206,4 @@ Tu aplicación debería estar funcionando en: `https://tu-app.netlify.app`
 Si necesitas ayuda, revisa los logs de Netlify o la documentación oficial:
 - Netlify Next.js: https://docs.netlify.com/integrations/frameworks/nextjs/
 - Prisma Deployment: https://www.prisma.io/docs/guides/deployment
+- Recordatorios: Ver `lib/cron-setup.md`

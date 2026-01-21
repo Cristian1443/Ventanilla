@@ -4,6 +4,7 @@ import { getPrismaClient } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import AdminChart from "@/components/AdminChart";
+import SendRemindersButton from "@/components/SendRemindersButton";
 
 export const runtime = "nodejs";
 
@@ -196,6 +197,18 @@ export default async function AdminPage() {
             </CardContent>
           </Card>
         </div>
+
+        <Card>
+          <CardHeader className="pb-2 sm:pb-4">
+            <CardTitle className="text-sm sm:text-base">Recordatorios de Tickets</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-zinc-600 dark:text-zinc-400 mb-3 sm:text-sm">
+              Envía recordatorios por correo a los responsables de tickets que están próximos a vencer (1 día antes).
+            </p>
+            <SendRemindersButton />
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader className="pb-2 sm:pb-4">

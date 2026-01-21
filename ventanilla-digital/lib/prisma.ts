@@ -9,13 +9,13 @@ function normalizeDatabaseUrl(url: string): string {
   try {
     const urlObj = new URL(url);
     
-    // Si ya tiene sslmode, no hacer nada
-    if (urlObj.searchParams.has("sslmode")) {
-      return url;
-    }
-    
-    // Agregar sslmode=verify-full explícitamente
+    // Siempre forzar sslmode=verify-full explícitamente para evitar warnings
+    // Esto reemplaza cualquier valor anterior (prefer, require, verify-ca, etc.)
     urlObj.searchParams.set("sslmode", "verify-full");
+    
+    // También agregar uselibpqcompat=false para mantener el comportamiento actual
+    // y evitar el warning de seguridad
+    urlObj.searchParams.set("uselibpqcompat", "false");
     
     return urlObj.toString();
   } catch {
