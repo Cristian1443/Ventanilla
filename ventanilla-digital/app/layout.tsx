@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Sidebar from "@/components/Sidebar";
+import TopNavbar from "@/components/TopNavbar";
 import { auth } from "@/auth";
+import { isAdmin, isGerente } from "@/lib/config";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -19,8 +20,6 @@ export const metadata: Metadata = {
   description: "Sistema de gestión de solicitudes - Invest in Bogotá",
 };
 
-const ADMIN_EMAILS = ["pasantedesarrollo@investinbogota.org"];
-
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -28,16 +27,17 @@ export default async function RootLayout({
 }>) {
   const session = await auth();
   const userEmail = session?.user?.email ?? "";
-  const showSidebar = Boolean(userEmail);
-  const isAdmin = ADMIN_EMAILS.includes(userEmail);
+  const showSidebar = Boolean(userEmail); // Still useful to toggle nav visibility
+  const userIsAdmin = isAdmin(userEmail);
+  const userIsManager = isGerente(session?.user?.cargo);
 
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-zinc-50 dark:bg-zinc-950`}
       >
-        {showSidebar ? <Sidebar isAdmin={isAdmin} /> : null}
-        <main className={`min-h-screen ${showSidebar ? "pt-16 md:pt-0 md:pl-64" : ""}`}>{children}</main>
+        {showSidebar ? <TopNavbar isAdmin={userIsAdmin} isManager={userIsManager} userName={session?.user?.name || undefined} /> : null}
+        <main className="min-h-screen">{children}</main>
       </body>
     </html>
   );

@@ -11,36 +11,36 @@ const linkBase = "flex items-center rounded-md px-3 py-2 text-sm font-medium tra
 const linkInactive = "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800";
 const linkActive = "bg-[#E84922]/10 text-[#E84922] dark:bg-[#E84922]/20 dark:text-[#E84922]";
 
-const links = (isAdmin: boolean, pathname: string) => [
+const links = (showAdmin: boolean, pathname: string) => [
   { href: "/", label: "Crear Solicitud", active: pathname === "/" },
   {
     href: "/dashboard",
     label: "Dashboard",
     active: pathname.startsWith("/dashboard") && !pathname.startsWith("/admin"),
   },
-  ...(isAdmin
+  ...(showAdmin
     ? [
-        {
-          href: "/admin",
-          label: "Alta Gerencia",
-          active: pathname.startsWith("/admin"),
-        },
-      ]
+      {
+        href: "/admin",
+        label: "Alta Gerencia",
+        active: pathname.startsWith("/admin"),
+      },
+    ]
     : []),
 ];
 
 function NavLinks({
-  isAdmin,
+  showAdmin,
   pathname,
   onNavigate,
 }: {
-  isAdmin: boolean;
+  showAdmin: boolean;
   pathname: string;
   onNavigate?: () => void;
 }) {
   return (
     <nav className="space-y-2">
-      {links(isAdmin, pathname).map((item) => (
+      {links(showAdmin, pathname).map((item) => (
         <Link
           key={item.href}
           href={item.href}
@@ -54,10 +54,17 @@ function NavLinks({
   );
 }
 
-export default function Sidebar({ isAdmin = false }: { isAdmin?: boolean }) {
+export default function Sidebar({
+  isAdmin = false,
+  isManager = false,
+}: {
+  isAdmin?: boolean;
+  isManager?: boolean;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const showAdmin = isAdmin || isManager;
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: "/" });
@@ -102,9 +109,8 @@ export default function Sidebar({ isAdmin = false }: { isAdmin?: boolean }) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 border-r border-zinc-200 bg-white p-6 shadow-lg transition-transform duration-200 dark:border-zinc-800 dark:bg-zinc-900 md:z-40 md:translate-x-0 md:shadow-none ${
-          open ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-        }`}
+        className={`fixed inset-y-0 left-0 z-50 w-64 border-r border-zinc-200 bg-white p-6 shadow-lg transition-transform duration-200 dark:border-zinc-800 dark:bg-zinc-900 md:z-40 md:translate-x-0 md:shadow-none ${open ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+          }`}
       >
         <div className="flex h-full flex-col justify-between">
           <div className="space-y-6">
@@ -121,7 +127,7 @@ export default function Sidebar({ isAdmin = false }: { isAdmin?: boolean }) {
               </Link>
             </div>
 
-            <NavLinks isAdmin={isAdmin} pathname={pathname} onNavigate={closeMenu} />
+            <NavLinks showAdmin={showAdmin} pathname={pathname} onNavigate={closeMenu} />
           </div>
 
           <button

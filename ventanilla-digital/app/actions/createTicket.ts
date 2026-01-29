@@ -1,165 +1,25 @@
 "use server";
 
-import { z } from "zod";
-import { getPrismaClient } from "@/lib/prisma";
-import { sendAssignmentEmail } from "@/lib/email";
-
-const prioridadSchema = z.enum(["ALTA", "MEDIA", "BAJA"]);
-const tipoEntidadSchema = z.enum(["PERSONA_NATURAL", "EMPRESA_LOCAL", "EMPRESA_EXTRANJERA"]);
-
-const createTicketSchema = z
-  .object({
-    solicitanteNombre: z.string().min(1, "El nombre es requerido"),
-    solicitanteCargo: z.string().min(1, "El cargo es requerido"),
-    solicitanteGerencia: z.string().min(1, "La gerencia es requerida"),
-    solicitanteEmail: z.string().email("Email inválido"),
-    tipoEntidad: tipoEntidadSchema,
-    nombrePersona: z.string().optional(),
-    personaCorreo: z.string().email("Email inválido").optional(),
-    personaTelefono: z.string().optional(),
-    nit: z.string().optional(),
-    taxId: z.string().optional(),
-    empresaNombre: z.string().optional(),
-    pais: z.string().optional(),
-    ciudad: z.string().optional(),
-    direccion: z.string().optional(),
-    telefono: z.string().optional(),
-    tipoTicket: z.enum(["CONSULTA", "SOPORTE_TECNICO", "RECLAMO", "SOLICITUD_CAMBIO", "INCIDENTE"]),
-    prioridad: prioridadSchema,
-    diasResolucion: z.coerce.number().int().min(1, "Los días deben ser al menos 1"),
-    descripcion: z.string().min(10, "La descripción debe tener al menos 10 caracteres"),
-    asignadoNombre: z.string().optional(),
-    asignadoCargo: z.string().optional(),
-    asignadoEmail: z.string().email("Email inválido").optional(),
-    asignadoGerencia: z.string().optional(),
-  })
-  .refine((data) => {
-    if (data.tipoEntidad === "PERSONA_NATURAL") {
-      return Boolean(data.nombrePersona && data.personaCorreo && data.personaTelefono);
-    }
-    if (data.tipoEntidad === "EMPRESA_LOCAL") {
-      return Boolean(data.nit && data.empresaNombre && data.ciudad);
-    }
-    if (data.tipoEntidad === "EMPRESA_EXTRANJERA") {
-      return Boolean(data.taxId && data.empresaNombre && data.pais && data.ciudad);
-    }
-    return true;
-  }, { message: "Completa todos los campos requeridos según el tipo de entidad", path: ["tipoEntidad"] })
-  .refine((data) => {
-    if (data.prioridad === "ALTA") return data.diasResolucion <= 5;
-    if (data.prioridad === "MEDIA") return data.diasResolucion <= 10;
-    return data.diasResolucion <= 15;
-  }, { message: "Los días no corresponden a la prioridad seleccionada", path: ["diasResolucion"] });
-
-type CreateTicketInput = z.infer<typeof createTicketSchema>;
-
-const diasPorPrioridad: Record<z.infer<typeof prioridadSchema>, number> = {
-  ALTA: 1,
-  MEDIA: 3,
-  BAJA: 5,
-};
-
-const esFinDeSemana = (fecha: Date) => {
-  const dia = fecha.getDay();
-  return dia === 0 || dia === 6;
-};
-
-const sumarDiasHabiles = (fechaBase: Date, dias: number) => {
-  const resultado = new Date(fechaBase);
-  let agregados = 0;
-
-  while (agregados < dias) {
-    resultado.setDate(resultado.getDate() + 1);
-    if (!esFinDeSemana(resultado)) {
-      agregados += 1;
-    }
-  }
-
-  return resultado;
-};
-
-const mapTipoEntidad = (tipo: z.infer<typeof tipoEntidadSchema>) => {
-  switch (tipo) {
-    case "PERSONA_NATURAL":
-      return "Persona_Natural";
-    case "EMPRESA_LOCAL":
-      return "Empresa_Local";
-    case "EMPRESA_EXTRANJERA":
-      return "Empresa_Extranjera";
-    default:
-      return "Persona_Natural";
-  }
-};
-
-const mapPrioridad = (prioridad: z.infer<typeof prioridadSchema>) => {
-  switch (prioridad) {
-    case "ALTA":
-      return "Alta";
-    case "MEDIA":
-      return "Media";
-    case "BAJA":
-      return "Baja";
-    default:
-      return "Media";
-  }
-};
+import { auth } from "@/auth";
+import { TicketService } from "@/services/ticket.service";
+import { createTicketSchema, CreateTicketInput } from "@/lib/ticket-utils";
 
 export const createTicket = async (input: CreateTicketInput) => {
+  const session = await auth();
+  if (!session?.user?.email) {
+    throw new Error("No autorizado: Debes iniciar sesión para crear un ticket.");
+  }
+
+  // Validar datos
   const data = createTicketSchema.parse(input);
-  const prioridad = mapPrioridad(data.prioridad);
-  // Compromiso basado en días estimados (días hábiles), no en la prioridad fija
-  const ansFechaCompromiso = sumarDiasHabiles(new Date(), data.diasResolucion);
 
-  const prisma = getPrismaClient();
-  if (!prisma) {
-    throw new Error("DATABASE_URL no está configurado.");
-  }
-
-  const ticket = await prisma.ticket.create({
-    data: {
-      tipoSolicitud: data.tipoTicket,
-      descripcion: data.descripcion,
-      prioridad,
-      diasResolucion: data.diasResolucion,
-      tipoEntidad: mapTipoEntidad(data.tipoEntidad),
-      usuarioNombre: data.solicitanteNombre,
-      usuarioEmail: data.solicitanteEmail,
-      usuarioCargo: data.solicitanteCargo,
-      usuarioGerencia: data.solicitanteGerencia,
-      asignadoNombre: data.asignadoNombre || null,
-      asignadoCargo: data.asignadoCargo || null,
-      asignadoEmail: data.asignadoEmail || null,
-      asignadoGerencia: data.asignadoGerencia || null,
-      // Para Persona Natural guardamos correo/teléfono en los campos de contacto genéricos
-      empresaNIT: data.nit || data.taxId || null,
-      empresaNombre: data.empresaNombre || data.nombrePersona || null,
-      empresaTelefono:
-        data.tipoEntidad === "PERSONA_NATURAL"
-          ? data.personaTelefono || null
-          : data.telefono || null,
-      empresaCorreo:
-        data.tipoEntidad === "PERSONA_NATURAL"
-          ? data.personaCorreo || null
-          : null,
-      empresaPais: data.pais || (data.tipoEntidad === "EMPRESA_LOCAL" ? "Colombia" : null),
-      empresaCiudad: data.ciudad || null,
-      ansFechaCompromiso,
-    },
+  // Delegar creación al servicio
+  const ticket = await TicketService.create(data, {
+    email: session.user.email,
+    name: session.user.name || undefined,
+    cargo: session.user.cargo || undefined,
+    gerencia: session.user.gerencia || undefined,
   });
-
-  // Enviar correo si hay responsable asignado
-  if (ticket.asignadoEmail) {
-    try {
-      await sendAssignmentEmail(
-        ticket.asignadoEmail,
-        ticket.idTicket,
-        ticket.tipoSolicitud
-      );
-    } catch (error) {
-      console.error("[createTicket] Error al enviar correo:", error);
-      // No fallar la creación del ticket si el correo falla
-    }
-  }
 
   return ticket;
 };

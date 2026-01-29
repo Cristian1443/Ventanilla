@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { triggerManualReminders } from "@/app/actions/triggerReminders";
 
 export default function SendRemindersButton() {
   const [loading, setLoading] = useState(false);
@@ -20,9 +21,12 @@ export default function SendRemindersButton() {
     setResultado(null);
 
     try {
-      const response = await fetch("/api/reminders?dias=1");
-      const data = await response.json();
-      setResultado(data);
+      const data = await triggerManualReminders();
+      setResultado({
+        success: true,
+        mensaje: `Verificación completada. ${data.enviados} recordatorios enviados.`,
+        resultados: data
+      });
     } catch (error) {
       setResultado({
         success: false,
@@ -45,11 +49,10 @@ export default function SendRemindersButton() {
 
       {resultado && (
         <div
-          className={`p-3 rounded-md text-sm ${
-            resultado.success
-              ? "bg-green-50 text-green-800 border border-green-200"
-              : "bg-red-50 text-red-800 border border-red-200"
-          }`}
+          className={`p-3 rounded-md text-sm ${resultado.success
+            ? "bg-green-50 text-green-800 border border-green-200"
+            : "bg-red-50 text-red-800 border border-red-200"
+            }`}
         >
           <p className="font-semibold mb-1">
             {resultado.success ? "✓ Éxito" : "✗ Error"}

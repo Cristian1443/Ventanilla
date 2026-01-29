@@ -7,6 +7,7 @@ type SelectProps = {
   defaultValue?: string;
   onValueChange?: (value: string) => void;
   children?: React.ReactNode;
+  disabled?: boolean;
 };
 
 type SelectItemProps = {
@@ -29,13 +30,13 @@ const isSelectContent = (node: React.ReactNode): node is React.ReactElement<{ ch
 const walkNodes = (node: React.ReactNode, cb: (child: React.ReactNode) => void) => {
   React.Children.forEach(node, (child) => {
     cb(child);
-    if (React.isValidElement(child) && child.props?.children) {
-      walkNodes(child.props.children, cb);
+    if (React.isValidElement(child) && (child as React.ReactElement<{ children?: React.ReactNode }>).props.children) {
+      walkNodes((child as React.ReactElement<{ children?: React.ReactNode }>).props.children, cb);
     }
   });
 };
 
-export const Select = ({ value, defaultValue, onValueChange, children }: SelectProps) => {
+export const Select = ({ value, defaultValue, onValueChange, children, disabled }: SelectProps) => {
   let placeholder: string | undefined;
   const items: SelectItemProps[] = [];
 
@@ -61,6 +62,7 @@ export const Select = ({ value, defaultValue, onValueChange, children }: SelectP
       value={value}
       defaultValue={value === undefined ? defaultValue ?? (placeholder ? "" : undefined) : undefined}
       onChange={(event) => onValueChange?.(event.target.value)}
+      disabled={disabled}
     >
       {placeholder && (
         <option value="" disabled hidden>
@@ -83,4 +85,3 @@ export const SelectTrigger = ({
 export const SelectValue = (_props: { placeholder?: string }) => null;
 export const SelectContent = ({ children }: { children?: React.ReactNode }) => <>{children}</>;
 export const SelectItem = (_props: SelectItemProps) => null;
-

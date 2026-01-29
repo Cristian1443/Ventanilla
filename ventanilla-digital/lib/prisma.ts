@@ -8,15 +8,14 @@ import { PrismaPg } from "@prisma/adapter-pg";
 function normalizeDatabaseUrl(url: string): string {
   try {
     const urlObj = new URL(url);
-    
-    // Siempre forzar sslmode=verify-full explícitamente para evitar warnings
-    // Esto reemplaza cualquier valor anterior (prefer, require, verify-ca, etc.)
-    urlObj.searchParams.set("sslmode", "verify-full");
-    
-    // También agregar uselibpqcompat=false para mantener el comportamiento actual
-    // y evitar el warning de seguridad
-    urlObj.searchParams.set("uselibpqcompat", "false");
-    
+
+
+
+    // Solo agregar sslmode si no estamos en localhost para permitir desarrollo local sin SSL
+    if (urlObj.hostname !== "localhost" && urlObj.hostname !== "127.0.0.1" && !urlObj.searchParams.has("sslmode")) {
+      urlObj.searchParams.set("sslmode", "verify-full");
+    }
+
     return urlObj.toString();
   } catch {
     // Si no es una URL válida, retornar tal cual
@@ -34,14 +33,14 @@ export function getPrismaClient(): PrismaClient | null {
   }
 
   const globalForPrisma = globalThis as typeof globalThis & { prisma?: PrismaClient };
-  
+
   if (!globalForPrisma.prisma) {
     const normalizedUrl = normalizeDatabaseUrl(process.env.DATABASE_URL);
-    
+
     globalForPrisma.prisma = new PrismaClient({
       adapter: new PrismaPg({ connectionString: normalizedUrl }),
     });
   }
-  
+
   return globalForPrisma.prisma;
 }

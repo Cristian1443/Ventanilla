@@ -314,7 +314,7 @@ export default function CreateTicketForm({ currentUser }: CreateTicketFormProps)
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="personaTelefono">Teléfono (Opcional)</Label>
+                  <Label htmlFor="personaTelefono">Teléfono ()</Label>
                   <Input id="personaTelefono" {...register("personaTelefono")} placeholder="Ej: +57 300 1234567" />
                   {errors.personaTelefono && <p className="text-sm text-red-500">{errors.personaTelefono.message}</p>}
                 </div>

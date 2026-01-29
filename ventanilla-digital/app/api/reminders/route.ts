@@ -10,6 +10,11 @@ import { checkAndSendReminders } from "@/app/actions/checkReminders";
  */
 export async function GET(request: Request) {
   try {
+    const authHeader = request.headers.get("authorization");
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const dias = searchParams.get("dias");
     const diasAnticipacion = dias ? parseInt(dias, 10) : 1;
